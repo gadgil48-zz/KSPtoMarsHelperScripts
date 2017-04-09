@@ -1,13 +1,15 @@
 declare parameter ap_setpoint.
-declare parameter head.
+declare parameter headng.
 
 lock vs to ship:verticalspeed.
+
+lock throttle to 1.
 
 set setpoint to ap_setpoint*1000.
 
 set Kp to 0.005379.
 set Ki to 0.0001355.
-set Kd to 0.03819/4.214.
+set Kd to 0.03819/8.214.
 
 set PitchPID to PIDLOOP(Kp, Ki, Kd).
 set PitchPID:minoutput to -30.
@@ -15,7 +17,7 @@ set PitchPID:maxoutput to 30.
 
 set start_time to time:seconds.
 
-set steertag to heading(head, 0).
+set steertag to heading(headng, 0).
 
 lock steering to steertag.
 
@@ -26,14 +28,7 @@ until vs<0{
 
       set pitch to PitchPID:update(cur_time, error).
 
-      //if cur_time>10{
-      	 //set pitch to -10.
-      //}
-      //else{
-         //set pitch to 0.
-      //}
-
-      set steertag to heading(head, pitch).
+      set steertag to heading(headng, pitch).
 
       log cur_time+ " " + error + " " + pitch to final2.txt.
 
@@ -46,21 +41,20 @@ until vs<0{
       wait 0.
 }
 
-set start_time to time:seconds.
-
-set PitchPID:Kp to 0.411.
-set PitchPID:Ki to 0.0123.
-set PitchPID:Kd to -3.082/7.5.
-
 
 until (setpoint-orbit:periapsis)<10000{
-      set error to -1*(setpoint - ship:altitude).
 
-      set cur_time to time:seconds-start_time.
+      set vorbh to (ship:velocity:orbit-ship:velocity:surface):mag+ship:groundspeed.
 
-      set pitch to PitchPID:update(cur_time, error).
+      set centrifugal_acc to vorbh*vorbh/(orbit:body:radius+ship:altitude).
 
-      set steertag to heading(head, pitch).
+      set grav_acc to orbit:body:mu/((orbit:body:radius+ship:altitude)^2).
+
+      set effec_acc to grav_acc-centrifugal_acc.
+
+      set pitch to MAX(-30, MIN(30,arcsin(effec_acc/(ship:availablethrust/ship:mass)))).
+
+      set steertag to heading(headng, pitch).
 
       clearscreen.
 
@@ -68,7 +62,7 @@ until (setpoint-orbit:periapsis)<10000{
 
       print "Pitch: " + pitch + "deg" at (0,3).
 
-      wait 0.01.
+      wait 0.
 }
 
 lock throttle to 0.

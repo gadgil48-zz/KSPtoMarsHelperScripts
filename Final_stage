@@ -1,0 +1,75 @@
+declare parameter ap_setpoint.
+declare parameter head.
+
+lock vs to ship:verticalspeed.
+
+set setpoint to ap_setpoint*1000.
+
+set Kp to 0.005379.
+set Ki to 0.0001355.
+set Kd to 0.03819/4.214.
+
+set PitchPID to PIDLOOP(Kp, Ki, Kd).
+set PitchPID:minoutput to -30.
+set PitchPID:maxoutput to 30.
+
+set start_time to time:seconds.
+
+set steertag to heading(head, 0).
+
+lock steering to steertag.
+
+until vs<0{
+      set error to orbit:apoapsis-setpoint.
+
+      set cur_time to time:seconds - start_time.
+
+      set pitch to PitchPID:update(cur_time, error).
+
+      //if cur_time>10{
+      	 //set pitch to -10.
+      //}
+      //else{
+         //set pitch to 0.
+      //}
+
+      set steertag to heading(head, pitch).
+
+      log cur_time+ " " + error + " " + pitch to final2.txt.
+
+      clearscreen.
+
+      print "Apoapsis: " + orbit:apoapsis + "m" at (0,1).
+
+      print "Pitch: " + pitch + "deg" at (0,3).
+      
+      wait 0.
+}
+
+set start_time to time:seconds.
+
+set PitchPID:Kp to 0.411.
+set PitchPID:Ki to 0.0123.
+set PitchPID:Kd to -3.082/7.5.
+
+
+until (setpoint-orbit:periapsis)<10000{
+      set error to -1*(setpoint - ship:altitude).
+
+      set cur_time to time:seconds-start_time.
+
+      set pitch to PitchPID:update(cur_time, error).
+
+      set steertag to heading(head, pitch).
+
+      clearscreen.
+
+      print "Altitude: " + ship:altitude + "m" at (0,1).
+
+      print "Pitch: " + pitch + "deg" at (0,3).
+
+      wait 0.01.
+}
+
+lock throttle to 0.
+unlock steering.
